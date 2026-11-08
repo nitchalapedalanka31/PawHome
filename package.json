@@ -1,0 +1,11 @@
+{
+  "name": "pawhome-workspace",
+  "version": "1.0.0",
+  "private": true,
+  "description": "PawHome Workspace Root",
+  "scripts": {
+    "dev:server": "npm --prefix pawhomemain/server run dev",
+    "dev:client": "npm --prefix pawhomemain/client run dev",
+    "dev": "npm --prefix pawhomemain/client run dev"
+  }
+}

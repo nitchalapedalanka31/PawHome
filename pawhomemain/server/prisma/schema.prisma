@@ -1,0 +1,206 @@
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String          @id @default(uuid())
+  email        String          @unique
+  password     String
+  fullName     String
+  phone        String?
+  avatarUrl    String?
+  createdAt    DateTime        @default(now())
+  updatedAt    DateTime        @updatedAt
+
+  pets         Pet[]
+  appointments Appointment[]
+  reminders    Reminder[]
+  favorites    FavoriteFood[]
+}
+
+model Pet {
+  id                 String            @id @default(uuid())
+  userId             String
+  name               String
+  animalType         String            // Dog, Cat, Other
+  breed              String
+  age                Int?
+  gender             String            // Male, Female
+  dateOfBirth        DateTime?
+  weight             Float?
+  imageUrl           String?
+  medicalInfo        String?
+  vaccinationDetails String?
+  allergies          String?
+  specialNotes       String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+
+  user               User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  healthRecords      PetHealthRecord[]
+  moodAnalyses       MoodAnalysis[]
+  appointments       Appointment[]
+  reminders          Reminder[]
+}
+
+model PetHealthRecord {
+  id             String    @id @default(uuid())
+  petId          String
+  recordType     String    // Vaccination, Deworming, Medical History, Weight Tracking, Surgery, General Checkup
+  title          String
+  date           DateTime
+  description    String?
+  clinicOrVet    String?
+  nextDueDate    DateTime?
+  attachmentUrl  String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  pet            Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+}
+
+model MoodAnalysis {
+  id            String    @id @default(uuid())
+  petId         String
+  imageUrl      String
+  predictedMood String    // Happy, Relaxed, Curious, Playful, Fearful, Stressed
+  confidence    Float     // 0.0 - 1.0 (or percentage)
+  explanation   String
+  observations  String    // JSON array stored as string
+  careTips      String    // JSON array stored as string
+  isDemoMode    Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+
+  pet           Pet       @relation(fields: [petId], references: [id], onDelete: Cascade)
+}
+
+model FoodProduct {
+  id              String         @id @default(uuid())
+  name            String
+  brand           String
+  imageUrl        String
+  animalType      String         // Dog, Cat, Both
+  ageCategory     String         // Puppy, Kitten, Adult, Senior, All Stages
+  foodType        String         // Dry Food, Wet Food, Treats, Special Dietary Food
+  description     String
+  keyIngredients  String
+  nutritionalInfo String
+  allergyWarnings String?
+  feedingGuidance String
+  price           Float
+  rating          Float          @default(4.8)
+  isDemo          Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  favorites       FavoriteFood[]
+}
+
+model FavoriteFood {
+  id        String      @id @default(uuid())
+  userId    String
+  foodId    String
+  createdAt DateTime    @default(now())
+
+  user      User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  food      FoodProduct @relation(fields: [foodId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, foodId])
+}
+
+model VeterinaryDoctor {
+  id                 String        @id @default(uuid())
+  name               String
+  clinicName         String
+  imageUrl           String
+  specialization     String
+  clinicAddress      String
+  phone              String
+  email              String?
+  experienceYears    Int           @default(5)
+  consultationFee    Float         @default(50.0)
+  availableDays      String        // e.g. "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday"
+  availableTimeSlots String        // JSON array e.g. ["09:00 AM", "10:00 AM", "11:30 AM", "02:00 PM", "04:00 PM", "05:30 PM"]
+  rating             Float         @default(4.9)
+  isDemo             Boolean       @default(true)
+  createdAt          DateTime      @default(now())
+  updatedAt          DateTime      @updatedAt
+
+  appointments       Appointment[]
+}
+
+model Salon {
+  id                 String         @id @default(uuid())
+  name               String
+  imageUrl           String
+  address            String
+  phone              String
+  rating             Float          @default(4.8)
+  availableDays      String         // e.g. "Monday,Tuesday,Wednesday,Thursday,Friday,Saturday,Sunday"
+  availableTimeSlots String         // JSON array
+  isDemo             Boolean        @default(true)
+  createdAt          DateTime       @default(now())
+  updatedAt          DateTime       @updatedAt
+
+  services           SalonService[]
+  appointments       Appointment[]
+}
+
+model SalonService {
+  id              String        @id @default(uuid())
+  salonId         String
+  name            String        // Bathing, Hair Cutting, Nail Trimming, Ear Cleaning, Full Grooming, Spa Treatment
+  description     String
+  price           Float
+  durationMinutes Int           @default(45)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  salon           Salon         @relation(fields: [salonId], references: [id], onDelete: Cascade)
+  appointments    Appointment[]
+}
+
+model Appointment {
+  id          String            @id // Format: PAW-VET-XXXXX or PAW-SAL-XXXXX
+  userId      String
+  petId       String
+  type        String            // VETERINARY, SALON
+  vetId       String?
+  salonId     String?
+  serviceId   String?
+  date        String            // YYYY-MM-DD
+  timeSlot    String            // e.g. "10:00 AM"
+  reason      String?
+  notes       String?
+  status      String            @default("UPCOMING") // UPCOMING, COMPLETED, CANCELLED
+  fee         Float?
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pet         Pet               @relation(fields: [petId], references: [id], onDelete: Cascade)
+  vet         VeterinaryDoctor? @relation(fields: [vetId], references: [id], onDelete: SetNull)
+  salon       Salon?            @relation(fields: [salonId], references: [id], onDelete: SetNull)
+  service     SalonService?     @relation(fields: [serviceId], references: [id], onDelete: SetNull)
+}
+
+model Reminder {
+  id          String   @id @default(uuid())
+  userId      String
+  petId       String
+  title       String
+  category    String   // Vaccination, Medication, Grooming, Checkup, Diet, Other
+  dueDate     DateTime
+  isCompleted Boolean  @default(false)
+  notes       String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  pet         Pet      @relation(fields: [petId], references: [id], onDelete: Cascade)
+}
